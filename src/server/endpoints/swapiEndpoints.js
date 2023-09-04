@@ -16,25 +16,55 @@ const applySwapiEndpoints = (server, app) => {
 
     server.get('/hfswapi/getPeople/:id', async (req, res) => {
         const { id } = req.params
-        try{
-            const [dbPeopleData] = await app.db.swPeople.findAll({
+        try {
+            let [dbPeopleData] = await app.db.swPeople.findAll({
                 where: {
                     id
                 }
             });
             if (dbPeopleData)
-                return res.status(200).send(dbPeopleData);
-            const dataSwapi = await app.swapiFunctions.genericRequest(`https://swapi.dev/api/people/${id}`, 'GET', null, true);
-            return res.status(200).send(dataSwapi);
+                return res.status(200).send({
+                    name: dbPeopleData.name,
+                    mass: dbPeopleData.mass,
+                    height: dbPeopleData.height,
+                    homeworldName: dbPeopleData.homeworld_name,
+                    homeworldId: dbPeopleData.homeworld_id,
+                });
+            else {
+                const apiPeopleData = await app.swapiFunctions.genericRequest(`https://swapi.dev/api/people/${id}`, 'GET', null, true);
+                const apiPlanetData = await app.swapiFunctions.genericRequest(apiPeopleData.homeworld, 'GET', null, true);
+                return res.status(200).send({
+                    name: apiPeopleData.name,
+                    mass: apiPeopleData.mass,
+                    height: apiPeopleData.height,
+                    homeworldName: apiPlanetData.name,
+                    homeworldId: `/planets/${apiPeopleData.homeworld}`,
+                });
+            }
 
         }
-        catch (err){
-            return res.status(200).send(dataSwapi);
+        catch (err) {
+            return res.status(500).send(err.message);
         }
     });
 
     server.get('/hfswapi/getPlanet/:id', async (req, res) => {
-        res.sendStatus(501);
+        const { id } = req.params
+        try {
+            const [dbPlanetData] = await app.db.swPlanet.findAll({
+                where: {
+                    id
+                }
+            });
+            if (dbPlanetData)
+                return res.status(200).send({ name: dbPlanetData.name, gravity: dbPlanetData.gravity });
+            const dataSwapi = await app.swapiFunctions.genericRequest(`https://swapi.dev/api/planets/${id}`, 'GET', null, true);
+            return res.status(200).send({ name: dataSwapi.name, gravity: dataSwapi.gravity.split(" ")[0] });
+
+        }
+        catch (err) {
+            return res.status(500).send(err);
+        }
     });
 
     server.get('/hfswapi/getWeightOnPlanetRandom', async (req, res) => {
