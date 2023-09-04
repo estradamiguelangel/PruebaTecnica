@@ -1,11 +1,10 @@
-
+const loggingMiddleware = require('../middlewares/loggingMiddleware')
 const _isWookieeFormat = (req) => {
     if (req.query.format && req.query.format == 'wookiee') {
         return true;
     }
     return false;
 }
-
 const applySwapiEndpoints = (server, app) => {
     const getPeople = async (id) => {
         let [dbPeopleData] = await app.db.swPeople.findAll({
@@ -50,7 +49,7 @@ const applySwapiEndpoints = (server, app) => {
         res.send(data);
     });
 
-    server.get('/hfswapi/getPeople/:id', async (req, res) => {
+    server.get('/hfswapi/getPeople/:id', loggingMiddleware(app.db), async (req, res) => {
         const { id } = req.params
         try {
             const getPeopleData = await getPeople(id)
@@ -61,7 +60,7 @@ const applySwapiEndpoints = (server, app) => {
         }
     });
 
-    server.get('/hfswapi/getPlanet/:id', async (req, res) => {
+    server.get('/hfswapi/getPlanet/:id', loggingMiddleware, async (req, res) => {
         const { id } = req.params
         try {
             const getPlanetData = await getPlanet(id)
@@ -72,7 +71,7 @@ const applySwapiEndpoints = (server, app) => {
         }
     });
 
-    server.get('/hfswapi/getWeightOnPlanetRandom', async (req, res) => {
+    server.get('/hfswapi/getWeightOnPlanetRandom', loggingMiddleware, async (req, res) => {
 
         function getRandomInt(max) {
             return Math.floor(Math.random() * max);
@@ -83,7 +82,7 @@ const applySwapiEndpoints = (server, app) => {
             const peopleData = await getPeople(peopleId)
             const planetData = await getPlanet(planetId)
             if (peopleData.homeworldName === planetData.name) return res.status(401).send("El planeta es el natal del personaje");
-            const pesoPersonaje = parseInt(planetData.gravity) * parseInt(peopleData.mass)
+            const pesoPersonaje = parseFloat(planetData.gravity) * parseFloat(peopleData.mass)
             return res.status(200).send({ pesoPersonaje });
         }
         catch (err) {
